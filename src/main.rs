@@ -28,6 +28,19 @@ fn main() {
         CommandType::Run { script } => {
             println!("[saferun] Running script: {}", script);
 
+            println!("[saferun] Isolation
+    - filesystem: temporary
+    - network: restricted (basic)
+    - environment: clean");
+
+            let contents = fs::read_to_string(&script)
+                .expect("failed to read script");
+
+            if let Some(tool) = contains_blocked_network_tools(&contents) {
+                eprintln!("[saferun] blocked: script uses forbidden network tool '{}'", tool);
+                std::process::exit(1);
+            }
+
             let dir = tempdir().expect("failed to create temp dir");
             let temp_path = dir.path();
 
@@ -51,8 +64,22 @@ fn main() {
                 .output()
                 .expect("failed to execute script");
 
+            println!("[saferun] Output:");
+            
             println!("{}", String::from_utf8_lossy(&output.stdout));
             eprintln!("{}", String::from_utf8_lossy(&output.stderr));
         }
     }
+}
+
+fn contains_blocked_network_tools(script_contents: &str) -> Option<&'static str> {
+    let blocked = ["curl", "wget", "nc", "netcat", "scp"];
+
+    for tool in blocked {
+        if script_contents.contains(tool) {
+            return Some(tool);
+        }
+    }
+
+    None
 }
