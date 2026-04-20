@@ -79,6 +79,18 @@ This is not:
 - A CI system
 - A replacement for proper security practices
 
+## Examples
+
+You can try saferun with the provided scripts:
+
+- `examples/hello.sh` — basic execution
+- `examples/env.sh` — environment isolation
+- `examples/evil.sh` — simulates unsafe behavior
+
+## Limitations
+
+This version does not provide full filesystem or network isolation.
+
 ## Status
 Early version, focused on simplicity and safety.
 
