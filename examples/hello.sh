@@ -1,1 +1,2 @@
-echo hello from script
+#!/bin/sh
+echo "hello from saferun"
