@@ -27,7 +27,20 @@ It might:
 - blocks obvious network access
 
 ## Quick start
+
+### Requirements
+- Rust (stable)
+
+Install Rust:
 ```
+curl https://sh.rustup.rs -sSf | sh
+source $HOME/.cargo/env
+```
+
+### Run
+```
+git clone https://github.com/pduarte21/saferun.git
+cd saferun
 cargo run -- run examples/hello.sh
 ```
 
