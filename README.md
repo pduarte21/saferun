@@ -12,85 +12,64 @@ We've all done this:
 curl something.sh | bash
 ```
 
-Sometimes it works.
+You don't really know what that script will do.
 
-Sometimes... you have no idea what just ran on your system.
+It might:
+- modify your files
+- leak environment variables
+- access parts of your system you dind't expect
 
 ## The solution
-```saferun``` lets you run any script in a strongly isolated environment:
-- No access to your filesystem
-- No network access (by default)
-- Restricted system calls
-- Clean environment every time
+```saferun``` provides a safer way to run scripts locally
+- runs script in a temporary directory
+- clears the environment
+- limits available tools
+- blocks obvious network access
 
 ## Quick start
 ```
-saferun run script.sh
-```
-That's it.
-
-## What actually happens
-When you run a script with ```saferun```:
-- It runs in a isolated filesystem
-- It cannot access your files
-- It cannot reach the network
-- It runs with limited system capabilities
-
-## Example
-```
-saferun run install.sh
+cargo run -- run examples/hello.sh
 ```
 
-Output:
-```
-[saferun] Running in isolated environment
-[saferun] Filesystem: isolated
-[saferun] Network: blocked
-[saferun] Execution started...
-
-(output of the script)
-
-[saferun] Execution finished
-```
-
-## Why not Docker?
-Docker is powerful, but:
-- Requires setup
-- Not designed for adversarial scripts
-- Easy to misconfigure
-
-```saferun``` is:
-- Minimal
-- Focused
-- Safe by default
-
-## When to use this
-- Running scripts from the internet
-- Testing unknown code
-- Inspecting install scripts
-- Anything you don't fullt trust
-
-## What this is (and isn't)
-This is:
-- A simple tool for safer local execution
-
-This is not:
-- A full VM
-- A CI system
-- A replacement for proper security practices
+## What saferun does
+When you run a script with `saferun`:
+- it executes in an isolated temporary filesystem
+- it cannot access your environment variables
+- it runs with a minimal PATH
+- basic network tools are blocked
 
 ## Examples
+Try the included scripts:
+```
+cargo run -- run examples/hello.sh
+cargo run -- run examples/env_leak.sh
+cargo run -- run examples/evil_write.sh
+cargo run -- run examples/network_attempt.sh
+cargo run -- run examples/harmless_but_complex.sh
+```
 
-You can try saferun with the provided scripts:
-
-- `examples/hello.sh` — basic execution
-- `examples/env.sh` — environment isolation
-- `examples/evil.sh` — simulates unsafe behavior
+## What saferun protect againts
+- accidental execution of unsafe scripts
+- leaking environment variables
+- basic filesystem side-effect
+- obvious network calls (e.g. curl, wget)
 
 ## Limitations
+This is an early version and **not a full security sandbox**.
 
-This version does not provide full filesystem or network isolation.
+It does NOT yet prevent:
+- access to files via absolute paths
+- advanced or obfuscated commands
+- indirect execution patterns
+- real network isolation
+
+## Why not just use a VM
+VMs provide stronger isolation, but:
+- they add friction
+- they are not integrated into everyday workflows
+
+`saferun` is designed to be:
+> a lightweight, low friction safer default
 
 ## Status
-Early version, focused on simplicity and safety.
-
+Early prototype, focused on simplicity and usability.
