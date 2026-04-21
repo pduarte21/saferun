@@ -26,9 +26,7 @@ It might:
 - limits available tools
 - blocks obvious network access
 
-## Quick start
-
-### Install
+## Install
 
 ### Download binary
 ```bash
