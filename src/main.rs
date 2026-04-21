@@ -26,6 +26,9 @@ fn main() {
 
     match cmd {
         CommandType::Run { script } => {
+            println!("[saferun] ⚠️  This is not a full sandbox.");
+            println!("[saferun] Designed to reduce common risks when running unknown scripts.");
+
             println!("[saferun] Running script: {}", script);
 
             println!("[saferun] Isolation
