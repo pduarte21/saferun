@@ -28,20 +28,19 @@ It might:
 
 ## Quick start
 
-### Requirements
-- Rust (stable)
+### Install
 
-Install Rust:
-```
-curl https://sh.rustup.rs -sSf | sh
-source $HOME/.cargo/env
+### Download binary
+```bash
+wget https://github.com/pduarte21/saferun/releases/download/v0.1.0/saferun-linux-x86_64
+
+chmod +x saferun-linux-x86_64
+mv saferun-linux-x86_64 saferun
 ```
 
 ### Run
 ```
-git clone https://github.com/pduarte21/saferun.git
-cd saferun
-cargo run -- run examples/hello.sh
+./saferun run script.sh
 ```
 
 ## What saferun does
@@ -54,11 +53,11 @@ When you run a script with `saferun`:
 ## Examples
 Try the included scripts:
 ```
-cargo run -- run examples/hello.sh
-cargo run -- run examples/env_leak.sh
-cargo run -- run examples/evil_write.sh
-cargo run -- run examples/network_attempt.sh
-cargo run -- run examples/harmless_but_complex.sh
+./saferun run examples/hello.sh
+./saferun run examples/env_leak.sh
+./saferun run examples/evil_write.sh
+./saferun run examples/network_attempt.sh
+./saferun run examples/harmless_but_complex.sh
 ```
 
 ## What saferun protect againts
