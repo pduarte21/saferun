@@ -29,12 +29,31 @@ It might:
 ## Install
 
 ### Download binary
+Go to the [Releases page](https://github.com/pduarte21/saferun/releases) and download the binary for your OS.
+
+#### Linux (x86_64)
 ```bash
 wget https://github.com/pduarte21/saferun/releases/download/v0.1.0/saferun-linux-x86_64
-
 chmod +x saferun-linux-x86_64
 mv saferun-linux-x86_64 saferun
 ```
+
+#### macOS (Intel)
+```bash
+wget https://github.com/pduarte21/saferun/releases/download/v0.1.0/saferun-macos-x86_64
+chmod +x saferun-macos-x86_64
+mv saferun-macos-x86_64 saferun
+```
+
+#### macOS (Apple Silicon)
+```bash
+wget https://github.com/pduarte21/saferun/releases/download/v0.1.0/saferun-macos-aarch64
+chmod +x saferun-macos-aarch64
+mv saferun-macos-aarch64 saferun
+```
+
+#### Windows
+Download `saferun-windows-x86_64.exe` and run it from PowerShell or CMD.
 
 ### Run
 ```
