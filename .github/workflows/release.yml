@@ -42,7 +42,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build release binary 
-        uses: cargo build --release
+        run: cargo build --release
 
       - name: Prepare asset folder (Unix)
         if: runner.os != 'Windows'
