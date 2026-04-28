@@ -13,6 +13,7 @@ struct AnalysisResult {
     warnings: Vec<String>,
     network_usage: bool,
     file_ops: Vec<String>,
+    risk_level: String,
 }
 
 fn parse_args() -> CommandType {
@@ -35,6 +36,7 @@ fn analyze_script(contents: &str) -> AnalysisResult {
     let mut warnings = Vec::new();
     let mut file_ops = Vec::new();
     let mut network_usage = false;
+    let mut score = 0;
 
     let dangerous_patterns = ["rm -rf", "chmod 777", "dd", "mkfs"];
     let network_patterns = ["curl", "wget", "nc", "ssh"];
@@ -71,7 +73,21 @@ fn analyze_script(contents: &str) -> AnalysisResult {
         }
     }
 
-    AnalysisResult { command_count: lines.len(), warnings, network_usage, file_ops }
+    score += warnings.len();
+    if network_usage {
+        score += 2;
+    }
+    if file_ops.len() > 3 {
+        score += 1;
+    }
+
+    let risk_level = match score {
+        0     => "LOW",
+        1..=3 => "MEDIUM",
+        _     => "HIGH",
+    }.to_string();
+
+    AnalysisResult { command_count: lines.len(), warnings, network_usage, file_ops, risk_level }
 }
 
 fn main() {
@@ -87,6 +103,7 @@ fn main() {
             if dry_run {
                 println!("[saferun] ⚠️  This is a best-effort preview. Bash scripts can be dynamic.\n");
                 println!("[saferun] Dry run mode (no execution)\n");
+                println!("[saferun] Risk Level: {}\n", analysis.risk_level);
 
                 println!("[info] Script summary:");
                 println!(" - commands: {}", analysis.command_count);

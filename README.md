@@ -4,8 +4,6 @@
 
 **Preview what a shell script will do before running it.**
 
-Run untrusted scripts safely — no setup, no surprises.
-
 ---
 
 ## The problem
@@ -33,6 +31,8 @@ saferun run script.sh --dry-run
 Example output:
 ```
 [saferun] Dry run mode (no execution)
+
+[saferun] Risk level: HIGH
 
 [info] Script summary:
  - commands: 8
