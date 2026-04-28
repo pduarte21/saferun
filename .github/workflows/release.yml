@@ -21,12 +21,6 @@ jobs:
             binary_name: saferun
             asset_name: saferun-linux-x86_64
 
-          - name: macos-x86_64
-            os: macos-13
-            target: x86_64-apple-darwin
-            binary_name: saferun
-            asset_name: saferun-macos-x86_64
-
           - name: macos-aarch64
             os: macos-latest
             target: aarch64-apple-darwin
