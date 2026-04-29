@@ -2,9 +2,37 @@
 
 ⚠️ Stop blindly running scripts.
 
-**Preview what a shell script will do before running it.**
+**See what a shell script will do before you run it.**
 
----
+## Example
+
+```
+./saferun run examples/suspicious-install.sh --dry-run
+```
+
+```
+[saferun] Preview mode (best-effort analysis)
+----------------------------------------
+
+[saferun] Risk: HIGH 🚨
+
+[warning] Potential risks detected:
+
+[HIGH]
+ - rm -rf -> deletes files recursively (can wipe directories)
+
+[MEDIUM]
+ - chmod 777 -> makes files globally writable
+
+[INFO]
+ - curl -> downloads remote content
+
+[info] File operations:
+ - /tmp/* (delete)
+
+----------------------------------------
+[saferun] No changes were made.
+```
 
 ## The problem
 We've all done this:
@@ -21,53 +49,59 @@ It might:
 - execute other scripts
 
 ## The solution
-```saferun``` helps you **understand and control** what a script does before you run it.
+```saferun``` helps you **quickly understand what a script might do before you run it**.
 
+It adds a lightweight safety layer to your normal workflow:
+- inspect scripts with the `--dry-run`
+- detect risky patterns
+- highlight file system impact
+- warn before execution when needed
+
+## How it works
 ### Preview mode (dry-run)
 ```
 saferun run script.sh --dry-run
 ```
 
-Example output:
+- shows risk level
+- explains suspicious patterns
+- highlights file operations
+- detects network usage
+
+### Smart execution
+`saferun` adapts its behaviour based on risk level:
+- **LOW risk** -> runs quietly (no interruptions)
+- **MEDIUM/HIGH risk** -> shows warnings and asks before executing
+
+### Example (safe script)
 ```
-[saferun] Dry run mode (no execution)
+./saferun run examples/safe_script.sh
+```
 
-[saferun] Risk level: HIGH
-
-[info] Script summary:
- - commands: 8
-
-[warning] Potentially dangerous patterns:
- - rm -rf
- - curl
- - piped execution
-
-[info] Network access: detected
-
-[info] File operations detected:
- - rm -rf /tmp/*
- - echo "data" > file.txt
-
-[saferun] No changes were made.
+```
+Hello world
+This is a safe script
 ```
 
 ### Safety Prompt
-If a script looks suspicious, `saferun` asks before running:
+If a script looks suspicious:
 ```
-[saferun] ⚠️  Potentially dangerous patterns detected:
+[saferun] Risk: HIGH 🚨
+
+[warning] Potential risks detected:
  - rm -rf
  - curl
 
 Continue? (y/N):
 ```
 
-### Advanced usage (JSON output)
+## Advanced usage
+### JSON output
 You can get structured output for automation:
 ```
 ./saferun run script.sh --dry-run --json
 ```
 
-Example output:
 ```
 {
   "risk_level": "HIGH",
@@ -89,17 +123,13 @@ Example output:
 }
 ```
 
-This can be useful for:
+Useful for:
 - scripting and automation
 - CI/CD pipelines
 - integrating with other tools
 
-### Lightweight isolation
-When you do run a script:
-```
-saferun run script.sh
-```
-It runs with basic protections:
+## Lightweight isolation
+When running scripts, `saferun` applies basic protections:
 - temporary working directory
 - clean environment (`env_clear`)
 - minimal `PATH`
@@ -128,19 +158,9 @@ mv saferun-macos-aarch64 saferun
 #### Windows
 Download `saferun-windows-x86_64.exe` and run it from PowerShell or CMD.
 
-### Run
-```
-./saferun run script.sh
-```
-
 ## Examples
 Try the included scripts:
 ```
-./saferun run examples/hello.sh
-./saferun run examples/env_leak.sh
-./saferun run examples/evil_write.sh
-./saferun run examples/network_attempt.sh
-./saferun run examples/harmless_but_complex.sh
 ./saferun run examples/suspicious-install.sh --dry-run
 ./saferun run examples/suspicious-install.sh
 ```
