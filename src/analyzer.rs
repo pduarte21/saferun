@@ -99,35 +99,56 @@ pub fn analyze_script(contents: &str) -> AnalysisResult {
 
 pub fn severity(pattern: &str) -> &'static str {
     match pattern {
-        "rm -rf" | "dd " | "mkfs" => "HIGH",
-        "chmod 777" => "MEDIUM",
+        "rm -rf" | "dd " | "mkfs"       => "HIGH",
+        "chmod 777"                     => "MEDIUM",
         "curl" | "wget" | "nc " | "ssh" => "INFO",
-        "piped execution" => "HIGH",
-        _ => "INFO", 
+        "piped execution"               => "HIGH",
+        _                               => "INFO", 
     }
 }
 
 pub fn explain_pattern(pattern: &str) -> &'static str {
     match pattern {
-        "rm -rf" => "deletes files recursively (can wipe directories)",
-        "chmod 777" => "makes files globally writable",
-        "dd " => "low-level disk write (can corrupt data)",
-        "mkfs" => "formats a filesystem (destructive)",
-        "curl" | "wget" => "downloads remote content",
-        "nc " | "netcat" => "opens raw network connections",
-        "ssh" => "connects to remote machines",
-        "piped execution" => "executes piped or downloaded content",
-        _ => "potentially unsafe operation",
+        "rm -rf"            => "deletes files recursively (can wipe directories)",
+        "chmod 777"         => "makes files globally writable",
+        "dd "               => "low-level disk write (can corrupt data)",
+        "mkfs"              => "formats a filesystem (destructive)",
+        "curl" | "wget"     => "downloads remote content",
+        "nc " | "netcat"    => "opens raw network connections",
+        "ssh"               => "connects to remote machines",
+        "piped execution"   => "executes piped or downloaded content",
+        _                   => "potentially unsafe operation",
     }
 }
 
 
 pub fn severity_weight(pattern: &str) -> u8 {
     match severity(pattern) {
-        "HIGH" => 3,
+        "HIGH"   => 3,
         "MEDIUM" => 2,
-        "INFO" => 1,
-        _ => 0,
+        "INFO"   => 1,
+        _        => 0,
+    }
+}
+
+fn print_group(name: &str, warnings: &Vec<&Warning>) {
+    if warnings.is_empty() {
+        return;
+    }
+
+    println!("\n[{}]", name);
+
+    for w in warnings {
+        let pattern = &w.pattern;
+
+        let explanation = if pattern.starts_with("sensitive path") {
+            "accesses potentially sensitive system data"
+        }
+        else {
+            explain_pattern(pattern)
+        };
+
+        println!(" - {} -> {}", pattern, explanation);
     }
 }
 
@@ -141,6 +162,11 @@ pub fn print_dry_run(analysis: &AnalysisResult) {
 
     if !analysis.warnings.is_empty() {
         println!("\n[warning] Potentially dangerous patterns:");
+
+        let mut high = Vec::new();
+        let mut medium = Vec::new();
+        let mut info = Vec::new();
+
         for w in &analysis.warnings {
             let pattern = &w.pattern;
 
@@ -150,14 +176,16 @@ pub fn print_dry_run(analysis: &AnalysisResult) {
                 severity(pattern)
             };
 
-            let explanation = if pattern.starts_with("sensitive path") {
-                "accesses potentially sensitive system data"
-            } else {
-                explain_pattern(pattern)
-            };
-
-            println!(" - [{}] {} -> {}", sev, pattern, explanation);
+            match sev {
+                "HIGH"   => high.push(w),
+                "MEDIUM" => medium.push(w),
+                _        => info.push(w),
+            }
         }
+        
+        print_group("HIGH", &high);
+        print_group("MEDIUM", &medium);
+        print_group("INFO", &info);
     }
 
     if analysis.network_usage {
