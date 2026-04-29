@@ -7,25 +7,25 @@ use crate::utils::contains_blocked_network_tools;
 use crate::analyzer::AnalysisResult;
 
 pub fn run_script(script: &str, contents: &str, analysis: &AnalysisResult) {
-    println!("[saferun] ⚠️  This is not a full sandbox.");
-    println!("[saferun] Designed to reduce common risks when running unknown scripts.");
-
     println!("[saferun] Running script: {}", script);
+    println!("----------------------------------------");
 
-    println!("[saferun] Isolation
-    - filesystem: temporary
-    - network: restricted (basic)
-    - environment: clean");
+    let risk_display = match analysis.risk_level.as_str() {
+        "HIGH" => "HIGH 🚨",
+        "MEDIUM" => "MEDIUM ⚠️",
+        "LOW" => "LOW ✓",
+        _ => &analysis.risk_level,
+    };
 
-    println!("\n[saferun] Risk Level: {}\n", analysis.risk_level);
+    println!("\n[saferun] Risk: {}", risk_display);
 
     if !analysis.warnings.is_empty() {
-        println!("[saferun] ⚠️  Potentially dangerous patterns detected:");
+        println!("[saferun] Potential risks detected:");
         for w in &analysis.warnings {
             println!(" - {}", w.pattern);
         }
-
-        print!("\nContinue? (y/N): ");
+        println!("\n----------------------------------------");
+        print!("Continue? (y/N): ");
         io::stdout().flush().unwrap();
 
         let mut input = String::new();

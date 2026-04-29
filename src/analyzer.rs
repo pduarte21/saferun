@@ -176,15 +176,20 @@ fn print_group(name: &str, warnings: &Vec<&Warning>) {
 }
 
 pub fn print_dry_run(analysis: &AnalysisResult) {
-    println!("[saferun] ⚠️  This is a best-effort preview. Bash scripts can be dynamic.\n");
-    println!("[saferun] Dry run mode (no execution)\n");
-    println!("[saferun] Risk Level: {}\n", analysis.risk_level);
+    println!("[saferun] Preview mode (best-effort analysis)");
+    println!("[saferun] Dry run mode (no execution)");
+    println!("----------------------------------------");
+    let risk_display = match analysis.risk_level.as_str() {
+        "HIGH" => "HIGH 🚨",
+        "MEDIUM" => "MEDIUM ⚠️",
+        "LOW" => "LOW ✓",
+        _ => &analysis.risk_level,
+    };
 
-    println!("[info] Script summary:");
-    println!(" - commands: {}", analysis.command_count);
+    println!("[saferun] Risk: {}", risk_display);
 
     if !analysis.warnings.is_empty() {
-        println!("\n[warning] Potentially dangerous patterns:");
+        println!("\n[warning] Potential risks detected:");
 
         let mut high = Vec::new();
         let mut medium = Vec::new();
@@ -211,10 +216,6 @@ pub fn print_dry_run(analysis: &AnalysisResult) {
         print_group("INFO", &info);
     }
 
-    if analysis.network_usage {
-        println!("\n[info] Network access: detected");
-    }
-
     if !analysis.file_ops.is_empty() {
         println!("\n[info] File operations:");
 
@@ -231,7 +232,15 @@ pub fn print_dry_run(analysis: &AnalysisResult) {
         }
     }
 
-    println!("\n[saferun] No changes were made.");
+    if analysis.network_usage {
+        println!("\n[info] Network access: detected");
+    }
+
+    println!("\n[info] Script summary:");
+    println!(" - commands: {}", analysis.command_count);
+
+    println!("\n----------------------------------------");
+    println!("[saferun] No changes were made.");
 }
 
 fn parse_file_op(line: &str) -> Option<JsonFileOp> {
@@ -255,10 +264,15 @@ fn parse_file_op(line: &str) -> Option<JsonFileOp> {
 
     // rm
     if line.starts_with("rm ") {
-        return Some(JsonFileOp {
-            path: line.replace("rm ", "").trim().to_string(),
-            operation: "delete".to_string(),
-        });
+        let parts: Vec<&str> = line.split_whitespace().collect();
+
+        // último argumento normalmente é o path
+        if let Some(path) = parts.last() {
+            return Some(JsonFileOp {
+                path: path.to_string(),
+                operation: "delete".to_string(),
+            });
+        }
     }
 
     // cp
