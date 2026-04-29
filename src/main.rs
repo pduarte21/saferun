@@ -8,9 +8,14 @@ enum CommandType {
     Run { script: String, dry_run: bool },
 }
 
+#[derive(Clone)]
+struct Warning {
+    pattern: String,
+}
+
 struct AnalysisResult {
     command_count: usize,
-    warnings: Vec<String>,
+    warnings: Vec<Warning>,
     network_usage: bool,
     file_ops: Vec<String>,
     risk_level: String,
@@ -40,6 +45,7 @@ fn analyze_script(contents: &str) -> AnalysisResult {
 
     let dangerous_patterns = ["rm -rf", "chmod 777", "dd", "mkfs"];
     let network_patterns = ["curl", "wget", "nc", "ssh"];
+    let sensitive_paths = ["/etc/passwd", "/etc/shadow", ".ssh", ".aws"];
 
     let lines: Vec<&str> = contents.lines().collect();
 
@@ -52,7 +58,9 @@ fn analyze_script(contents: &str) -> AnalysisResult {
 
         for pattern in &dangerous_patterns {
             if line.contains(pattern) {
-                warnings.push(pattern.to_string());
+                warnings.push(Warning {
+                    pattern: pattern.to_string()
+                });
             }
         }
 
@@ -69,7 +77,17 @@ fn analyze_script(contents: &str) -> AnalysisResult {
             file_ops.push(line.to_string());
         }
         if line.contains("| bash") {
-            warnings.push("piped execution".to_string());
+            warnings.push(Warning {
+                pattern: "piped execution".to_string()
+            });
+        }
+
+        for path in &sensitive_paths {
+            if line.contains(path) {
+                warnings.push(Warning { 
+                    pattern:  format!("sensitive path access: {}", path),
+                });
+            }
         }
     }
 
@@ -87,7 +105,44 @@ fn analyze_script(contents: &str) -> AnalysisResult {
         _     => "HIGH",
     }.to_string();
 
+    warnings.sort_by_key(|w| {
+        std::cmp::Reverse(severity_weight(&w.pattern))
+    });
+
     AnalysisResult { command_count: lines.len(), warnings, network_usage, file_ops, risk_level }
+}
+
+fn explain_pattern(pattern: &str) -> &'static str {
+    match pattern {
+        "rm -rf" => "deletes files recursively (can wipe directories)",
+        "chmod 777" => "makes files globally writable",
+        "dd " => "low-level disk write (can corrupt data)",
+        "mkfs" => "formats a filesystem (destructive)",
+        "curl" | "wget" => "downloads remote content",
+        "nc " | "netcat" => "opens raw network connections",
+        "ssh" => "connects to remote machines",
+        "piped execution" => "executes piped or downloaded content",
+        _ => "potentially unsafe operation",
+    }
+}
+
+fn severity(pattern: &str) -> &'static str {
+    match pattern {
+        "rm -rf" | "dd " | "mkfs" => "HIGH",
+        "chmod 777" => "MEDIUM",
+        "curl" | "wget" | "nc " | "ssh" => "INFO",
+        "piped execution" => "HIGH",
+        _ => "INFO", 
+    }
+}
+
+fn severity_weight(pattern: &str) -> u8 {
+    match severity(pattern) {
+        "HIGH" => 3,
+        "MEDIUM" => 2,
+        "INFO" => 1,
+        _ => 0,
+    }
 }
 
 fn main() {
@@ -109,9 +164,21 @@ fn main() {
                 println!(" - commands: {}", analysis.command_count);
 
                 if !analysis.warnings.is_empty() {
-                    println!("\n[warning] Potentially dangerous patterns");
+                    println!("\n[warning] Potentially dangerous patterns:");
                     for w in &analysis.warnings {
-                        println!(" - {}", w);
+                        let pattern = &w.pattern;
+                        let sev = if pattern.starts_with("sensitive path") {
+                            "HIGH"
+                        } else {
+                            severity(pattern)
+                        };
+                        let explanation = if pattern.starts_with("sensitive path") {
+                            "accesses potentially sensitive system data"   
+                        } else {
+                            explain_pattern(pattern)
+                        };
+
+                        println!(" - [{}] {} -> {}", sev, pattern, explanation);
                     }
                 }
 
@@ -144,7 +211,7 @@ fn main() {
                 println!("[saferun] ⚠️  Potentially dangerous patterns detected.");
                 println!("[saferun] ⚠️ This scripts has warnings:");
                 for w in &analysis.warnings {
-                    println!(" - {}", w);
+                    println!(" - {}", w.pattern);
                 }
                 
                 println!("\nContinue? (y/N): ");
