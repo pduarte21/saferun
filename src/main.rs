@@ -67,6 +67,9 @@ fn analyze_script(contents: &str) -> AnalysisResult {
         for pattern in &network_patterns {
             if line.contains(pattern) {
                 network_usage = true;
+                warnings.push(Warning {
+                    pattern: pattern.to_string(),
+                });
             }
         }
 
@@ -109,7 +112,14 @@ fn analyze_script(contents: &str) -> AnalysisResult {
         std::cmp::Reverse(severity_weight(&w.pattern))
     });
 
-    AnalysisResult { command_count: lines.len(), warnings, network_usage, file_ops, risk_level }
+    let command_count = lines.iter()
+    .filter(|line| {
+        let l = line.trim();
+        !l.is_empty() && !l.starts_with('#')
+    })
+    .count();
+
+    AnalysisResult { command_count, warnings, network_usage, file_ops, risk_level }
 }
 
 fn explain_pattern(pattern: &str) -> &'static str {
@@ -207,9 +217,10 @@ fn main() {
     - network: restricted (basic)
     - environment: clean");
 
+            println!("\n[saferun] Risk Level: {}\n", analysis.risk_level);
+
             if !analysis.warnings.is_empty() {
-                println!("[saferun] ⚠️  Potentially dangerous patterns detected.");
-                println!("[saferun] ⚠️ This scripts has warnings:");
+                println!("[saferun] ⚠️  Potentially dangerous patterns detected:");
                 for w in &analysis.warnings {
                     println!(" - {}", w.pattern);
                 }
