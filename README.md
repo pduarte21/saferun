@@ -61,6 +61,39 @@ If a script looks suspicious, `saferun` asks before running:
 Continue? (y/N):
 ```
 
+### Advanced usage (JSON output)
+You can get structured output for automation:
+```
+./saferun run script.sh --dry-run --json
+```
+
+Example output:
+```
+{
+  "risk_level": "HIGH",
+  "command_count": 8,
+  "warnings": [
+    {
+      "pattern": "rm -rf",
+      "severity": "HIGH",
+      "explanation": "deletes files recursively (can wipe directories)"
+    }
+  ],
+  "network_usage": true,
+  "file_operations": [
+    {
+      "path": "/tmp/file.txt",
+      "operation": "write"
+    }
+  ]
+}
+```
+
+This can be useful for:
+- scripting and automation
+- CI/CD pipelines
+- integrating with other tools
+
 ### Lightweight isolation
 When you do run a script:
 ```
