@@ -1,7 +1,7 @@
 use std::env;
 
 pub enum CommandType {
-    Run { script: String, dry_run: bool },
+    Run { script: String, dry_run: bool, json: bool },
 }
 
 pub fn parse_args() -> CommandType {
@@ -11,8 +11,9 @@ pub fn parse_args() -> CommandType {
         Some("run") => {
             let script = args.next().expect("missing script");
             let dry_run = args.any(|arg| arg == "--dry-run");
+            let json = args.any(|arg| arg == "--json");
 
-            CommandType::Run { script, dry_run }
+            CommandType::Run { script, dry_run, json }
         }
         _ => {
             panic!("usage: saferun run <script> [--dry-run]");

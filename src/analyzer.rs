@@ -1,4 +1,5 @@
-#[derive(Clone)]
+use serde::Serialize;
+
 pub struct Warning {
     pub pattern: String,
 }
@@ -9,6 +10,28 @@ pub struct AnalysisResult {
     pub network_usage: bool,
     pub file_ops: Vec<String>,
     pub risk_level: String,
+}
+
+#[derive(Serialize)]
+pub struct JsonWarning {
+    pattern: String,
+    severity: String,
+    explanation: String,
+}
+
+#[derive(Serialize)]
+pub struct JsonFileOp {
+    path: String,
+    operation: String,
+}
+
+#[derive(Serialize)]
+pub struct JsonOutput {
+    risk_level: String,
+    command_count: usize,
+    warnings: Vec<JsonWarning>,
+    network_usage: bool,
+    file_operations: Vec<JsonFileOp>,
 }
 
 pub fn analyze_script(contents: &str) -> AnalysisResult {
@@ -99,9 +122,9 @@ pub fn analyze_script(contents: &str) -> AnalysisResult {
 
 pub fn severity(pattern: &str) -> &'static str {
     match pattern {
-        "rm -rf" | "dd " | "mkfs"       => "HIGH",
+        "rm -rf" | "dd" | "mkfs"       => "HIGH",
         "chmod 777"                     => "MEDIUM",
-        "curl" | "wget" | "nc " | "ssh" => "INFO",
+        "curl" | "wget" | "nc" | "ssh" => "INFO",
         "piped execution"               => "HIGH",
         _                               => "INFO", 
     }
@@ -111,10 +134,10 @@ pub fn explain_pattern(pattern: &str) -> &'static str {
     match pattern {
         "rm -rf"            => "deletes files recursively (can wipe directories)",
         "chmod 777"         => "makes files globally writable",
-        "dd "               => "low-level disk write (can corrupt data)",
+        "dd"               => "low-level disk write (can corrupt data)",
         "mkfs"              => "formats a filesystem (destructive)",
         "curl" | "wget"     => "downloads remote content",
-        "nc " | "netcat"    => "opens raw network connections",
+        "nc" | "netcat"    => "opens raw network connections",
         "ssh"               => "connects to remote machines",
         "piped execution"   => "executes piped or downloaded content",
         _                   => "potentially unsafe operation",
@@ -182,7 +205,7 @@ pub fn print_dry_run(analysis: &AnalysisResult) {
                 _        => info.push(w),
             }
         }
-        
+
         print_group("HIGH", &high);
         print_group("MEDIUM", &medium);
         print_group("INFO", &info);
@@ -193,11 +216,102 @@ pub fn print_dry_run(analysis: &AnalysisResult) {
     }
 
     if !analysis.file_ops.is_empty() {
-        println!("\n[info] File operations detected:");
-        for op in &analysis.file_ops {
-            println!(" - {}", op);
+        println!("\n[info] File operations:");
+
+        for line in &analysis.file_ops {
+            if let Some(op) = parse_file_op(line) {
+                if op.operation == "delete" {
+                    println!(" - {} ({}) ⚠️", op.path, op.operation);
+                } else {
+                    println!(" - {} ({})", op.path, op.operation);
+                }
+            } else {
+                println!(" - {}", line);
+            }
         }
     }
 
     println!("\n[saferun] No changes were made.");
+}
+
+fn parse_file_op(line: &str) -> Option<JsonFileOp> {
+    // write (>)
+    if let Some(pos) = line.find('>') {
+        let path = line[pos + 1..].trim();
+        return Some(JsonFileOp {
+            path: path.to_string(),
+            operation: "write".to_string(),
+        });
+    }
+
+    // append (>>)
+    if let Some(pos) = line.find(">>") {
+        let path = line[pos + 2..].trim();
+        return Some(JsonFileOp {
+            path: path.to_string(),
+            operation: "append".to_string(),
+        });
+    }
+
+    // rm
+    if line.starts_with("rm ") {
+        return Some(JsonFileOp {
+            path: line.replace("rm ", "").trim().to_string(),
+            operation: "delete".to_string(),
+        });
+    }
+
+    // cp
+    if line.starts_with("cp ") {
+        return Some(JsonFileOp {
+            path: line.replace("cp ", "").trim().to_string(),
+            operation: "copy".to_string(),
+        });
+    }
+
+    // mv
+    if line.starts_with("mv ") {
+        return Some(JsonFileOp {
+            path: line.replace("mv ", "").trim().to_string(),
+            operation: "move".to_string(),
+        });
+    }
+
+    None
+}
+
+pub fn to_json_output(analysis: &AnalysisResult) -> JsonOutput {
+    let warnings = analysis.warnings.iter().map(|w| {
+        let pattern = &w.pattern;
+
+        let severity = if pattern.starts_with("sensitive path") {
+            "HIGH".to_string()
+        } else {
+            severity(pattern).to_string()
+        };
+
+        let explanation = if pattern.starts_with("sensitive path") {
+            "accesses potentially sensitive system data".to_string()
+        } else {
+            explain_pattern(pattern).to_string()
+        };
+
+        JsonWarning {
+            pattern: pattern.clone(),
+            severity,
+            explanation
+        }
+    }).collect();
+
+    let file_operations = analysis.file_ops.iter()
+        .filter_map(|line| parse_file_op(line))
+        .collect();
+
+    JsonOutput { 
+        risk_level: analysis.risk_level.clone(),
+        command_count: analysis.command_count,
+        warnings,
+        network_usage: analysis.network_usage,
+        file_operations 
+    }
 }
