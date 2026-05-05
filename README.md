@@ -2,9 +2,9 @@
 
 ⚠️ Stop blindly running scripts.
 
-**See what a shell script will do before you run it.**
+**See what a shell script might do before you run it.**
 
-## Example
+## Quick Start
 
 ```
 ./saferun run examples/suspicious-install.sh --dry-run
@@ -34,57 +34,60 @@
 [saferun] No changes were made.
 ```
 
-## The problem
+No changes are made. Just insight.
+
+## Why this exists
 We've all done this:
 ```bash
 curl something.sh | bash
 ```
+
+Fast, convenient... and risky.
 
 You don't really know what that script will do.
 
 It might:
 - modify your files
 - leak environment variables
-- access unexpected parts of your system
-- execute other scripts
+- download and execute other code
+- touch unexpected parts of your system
 
-## The solution
-```saferun``` helps you **quickly understand what a script might do before you run it**.
+## What saferun does
+```saferun``` helps you **understand risk before execution**, without slowing you down.
 
-It adds a lightweight safety layer to your normal workflow:
-- inspect scripts with the `--dry-run`
+It adds a lightweight safety layer to your workflow:
+- preview scripts (`--dry-run`)
 - detect risky patterns
 - highlight file system impact
 - warn before execution when needed
 
-## How it works
-### Preview mode (dry-run)
+## When should I use saferun?
+Use `saferun` when you're about to run a script you don't fully trust.
+
+### Typical cases
+- Running scripts from the internet
+- Trying install scripts from GitHub
+- Copy-pasting commands from blogs or StackOverflow
+- Running quick fixes you don't fully understand
+
+## Preview mode (dry-run)
 ```
-saferun run script.sh --dry-run
+./saferun run script.sh --dry-run
 ```
 
 - shows risk level
 - explains suspicious patterns
-- highlights file operations
 - detects network usage
+- highlights file operations
 
-### Smart execution
-`saferun` adapts its behaviour based on risk level:
-- **LOW risk** -> runs quietly (no interruptions)
-- **MEDIUM/HIGH risk** -> shows warnings and asks before executing
+## Smart execution
+When you run a script:
+```
+./saferun run script.sh
+```
+- **LOW risk** - runs normally
+- **MEDIUM/HIGH risk** - shows warnings and asks for confirmation 
 
-### Example (safe script)
-```
-./saferun run examples/safe_script.sh
-```
-
-```
-Hello world
-This is a safe script
-```
-
-### Safety Prompt
-If a script looks suspicious:
 ```
 [saferun] Risk: HIGH 🚨
 
@@ -92,12 +95,34 @@ If a script looks suspicious:
  - rm -rf
  - curl
 
-Continue? (y/N):
+Continue? (y/N): 
 ```
 
-## Advanced usage
-### JSON output
-You can get structured output for automation:
+## Examples
+Try the included scripts:
+```
+./saferun run examples/hello.sh --dry-run
+./saferun run examples/network_attempt.sh --dry-run
+./saferun run examples/suspicious_installs.sh
+```
+
+## Windows usage
+`saferun` supports:
+- `.bat` (via `cmd`)
+- `.ps1` (via PowerShell)
+
+Examples:
+```
+./saferun run examples/hello.ps1 --dry-run
+./saferun run examples/hello.bat --dry-run
+```
+Notes: 
+- `.ps1` requires PowerShell (`pwsh` or `powershell`)
+- `.bat` is supported on Windows only
+- On macOS/Linux, Windows scripts can be analyzed but are not executed by default
+
+## JSON output
+For automation:
 ```
 ./saferun run script.sh --dry-run --json
 ```
@@ -124,9 +149,9 @@ You can get structured output for automation:
 ```
 
 Useful for:
-- scripting and automation
 - CI/CD pipelines
-- integrating with other tools
+- scripting
+- integrations
 
 ## Lightweight isolation
 When running scripts, `saferun` applies basic protections:
@@ -134,52 +159,15 @@ When running scripts, `saferun` applies basic protections:
 - clean environment (`env_clear`)
 - minimal `PATH`
 - isolated `HOME`
-- basic blocking of network tools
-
-## Install
-
-### Download binary
-Go to the [Releases page](https://github.com/pduarte21/saferun/releases) and download the binary for your OS.
-
-#### Linux (x86_64)
-```bash
-wget https://github.com/pduarte21/saferun/releases/download/v0.1.0/saferun-linux-x86_64
-chmod +x saferun-linux-x86_64
-mv saferun-linux-x86_64 saferun
-```
-
-#### macOS (Apple Silicon)
-```bash
-wget https://github.com/pduarte21/saferun/releases/download/v0.1.0/saferun-macos-aarch64
-chmod +x saferun-macos-aarch64
-mv saferun-macos-aarch64 saferun
-```
-
-#### Windows
-Download `saferun-windows-x86_64.exe` and run it from PowerShell or CMD.
-
-## Examples
-Try the included scripts:
-```
-./saferun run examples/suspicious-install.sh --dry-run
-./saferun run examples/suspicious-install.sh
-```
-
-## What saferun protect againts
-- blindly running unknown scripts
-- accidental file modifications
-- leaking environment variables
-- obvious unsafe patterns (e.g. `rm -rf`, `curl`, `chmod 777`)
-- basic network calls
 
 ## Limitations
 This is **not a full sandbox**.
 
-It does NOT prevent:
-- access via absolute paths
-- dynamic or obfuscated behaviour
-- indirect execution
-- real OS-level isolation
+It does NOT guarantee:
+- full filesystem isolation
+- protection against obfuscated or dynamic behaviour
+- blocking of all network access
+- OS-level security guarantees
 
 ## Why not just use a VM
 VMs and container provide stronger isolation, but:
@@ -187,12 +175,38 @@ VMs and container provide stronger isolation, but:
 - they are not used for quick, everyday scripts
 
 `saferun` is designed to be:
-> a fast, low-friction safety layer for the common case
+> a fast, low-friction safety layer for everyday scripts
+
+
+## Install
+
+Go to the [Releases page](https://github.com/pduarte21/saferun/releases) and download the binary for your OS.
+
+### Linux (x86_64)
+```bash
+wget https://github.com/pduarte21/saferun/releases/download/v0.1.0/saferun-linux-x86_64
+chmod +x saferun-linux-x86_64
+mv saferun-linux-x86_64 saferun
+```
+
+### macOS (Apple Silicon)
+```bash
+wget https://github.com/pduarte21/saferun/releases/download/v0.1.0/saferun-macos-aarch64
+chmod +x saferun-macos-aarch64
+mv saferun-macos-aarch64 saferun
+```
+
+### Windows
+Download `saferun-windows-x86_64.exe` and run:
+```
+saferun-windows-x86_64.exe run script.ps1 
+```
 
 ## Status
-Early prototype focused on:
+Early-stage project focused on:
 - usability
-- visibility
-- real-world developer workflows
+- real developer workflows
+- fast feedback loops
 
-Feedback is very welcome.
+## Feedback
+Feedback, issues and ideas are very welcome.
