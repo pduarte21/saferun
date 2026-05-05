@@ -14,8 +14,14 @@ fn main() {
 
     match cmd {
         cli::CommandType::Run { script, dry_run, json } => {
-            let contents = std::fs::read_to_string(&script)
-                .expect("failed to read script");
+            let contents = match std::fs::read_to_string(&script) {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("error: failed to read script '{}'\n{}", script, e);
+                    std::process::exit(1);
+                }
+            };
+                
 
             let analysis = analyze_script(&contents);
 
