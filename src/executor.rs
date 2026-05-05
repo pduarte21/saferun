@@ -1,4 +1,5 @@
-use std::process::Command;
+use std::path::Path;
+use std::process::{Command, exit};
 use std::io::{self, Write};
 use tempfile::tempdir;
 
@@ -54,19 +55,61 @@ pub fn run_script(script: &str, contents: &str, analysis: &AnalysisResult) {
 
     let temp_script_path = temp_path.join(script_name);
 
-    std::fs::copy(script, &temp_script_path)
-        .expect("failed to execute script");
+    if let Err(e) = std::fs::copy(script, &temp_script_path) {
+        eprintln!("error: failed to copy script: {}", e);
+        exit(1);
+    }
 
-    let output = Command::new("sh")
-        .arg(&script_name)
+    let ext = Path::new(script)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("");
+
+    let mut command = match ext {
+        "sh" => {
+            let mut cmd = Command::new("sh");
+            cmd.arg(&script_name);
+            cmd
+        }
+        "ps1" => {
+            let mut cmd = Command::new("pwsh");
+            cmd.arg("-File").arg(&script_name);
+            cmd
+        }
+        "bat" => {
+            let mut cmd = Command::new("cmd");
+            cmd.args(&["/C", script_name.to_str().unwrap()]);
+            cmd
+        }
+        _ => {
+            eprintln!("error: unsupported script type '.{}'", ext);
+            exit(1);
+        }
+    };
+
+    command
         .current_dir(temp_path)
         .env_clear()
-        .env("PATH", "/usr/bin:/bin")
-        .env("HOME", temp_path)
-        .output()
-        .expect("failed to execute script");
+        .env("HOME", temp_path);
+
+    if cfg!(target_os = "windows") {
+        command.env("PATH", "C:\\Windows\\System32;C:\\Windows");
+    } else {
+        command.env("PATH", "/usr/bin:/bin");
+    }
+
+    let output = match command.output()
+    {
+        Ok(o) => o,
+        Err(e) => {
+            eprintln!("error: failed to execute script: {}", e);
+            exit(1);
+        }
+    };
 
     println!("[saferun] Output:");
     println!("{}", String::from_utf8_lossy(&output.stdout));
-    eprintln!("{}", String::from_utf8_lossy(&output.stderr));
+    if !output.stderr.is_empty() {
+        eprintln!("{}", String::from_utf8_lossy(&output.stderr));
+    }
 }
